@@ -1,4 +1,4 @@
-# Sensor Calibration using AI (PM2.5) 🧪
+# AI Driven Calibration of Low Cost Air Quality Sensors Using MLP and LSTM
 
 This repository contains a Master's level project for calibrating drifted PM2.5 air quality sensors using Deep Learning. The project follows a **Spiral Development Approach**, evolving from baseline neural networks to advanced LSTM architectures.
 
