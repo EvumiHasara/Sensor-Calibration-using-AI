@@ -42,7 +42,7 @@ def execute_model_cycle(tag, model_obj, x_train, y_train, x_test, y_test, out_sc
 
 
 def main():
-    # 1. Load Source
+    # Load Source
     csv_source = os.path.join('data', 'Measurement_info.csv')
     if not os.path.exists(csv_source):
         print(f"Error: {csv_source} not found.")
@@ -50,12 +50,12 @@ def main():
 
     raw_data = pd.read_csv(csv_source)
 
-    # 2. Engineering & Feature Extraction
+    #Engineering & Feature Extraction
     pm_subset = raw_data[raw_data['Item code'] == 9].copy()
     pm_subset['Measurement date'] = pd.to_datetime(pm_subset['Measurement date'])
 
 
-    # Align Ground Truth and Drift Sensor
+    #Align Ground Truth and Drift Sensor
     ref_truth = pm_subset[pm_subset['Instrument status'] == 0] \
         .groupby('Measurement date')['Average value'].mean().reset_index()
 
@@ -69,9 +69,7 @@ def main():
         suffixes=('_GT', '_DR')
     ).dropna()
 
-    # --- EXTRA VISUALIZATIONS ---
-
-    # 1. Distribution of PM2.5 values
+#Distribution of PM2.5 values
     plt.figure(figsize=(12, 5))
     plt.hist(merged_df['Average value_GT'], bins=50, alpha=0.7)
     plt.title('Distribution of PM2.5 Values (Ground Truth)')
@@ -80,7 +78,7 @@ def main():
     plt.grid(True)
     plt.show()
 
-    # 2. Time Series (First 500 Hours)
+#Time Series (First 500 Hours)
     ts_sample = merged_df.sort_values('Measurement date').head(500)
 
     plt.figure(figsize=(14, 6))
@@ -99,7 +97,7 @@ def main():
     plt.tight_layout()
     plt.show()
 
-    # 3. Normalization
+#Normalization
     target_log = np.log1p(merged_df[['Average value_GT']].values)
 
     input_scaler, output_scaler = MinMaxScaler(), MinMaxScaler()
@@ -108,13 +106,13 @@ def main():
     )
     target_scaled = output_scaler.fit_transform(target_log)
 
-    # 4. Sequence Generation
+#Sequence Generation
     LOOKBACK = 12
     features_3d, target_seq = generate_time_windows(
         inputs_scaled, target_scaled, step_count=LOOKBACK
     )
 
-    # 5. Data Partitioning
+#Data Partitioning
     train_x_3d, test_x_3d, train_y, test_y = train_test_split(
         features_3d, target_seq, test_size=0.2, random_state=42
     )
@@ -127,7 +125,7 @@ def main():
         monitor='val_loss', patience=10, restore_best_weights=True
     )
 
-    # --- ITERATION 1 ---
+#Iteration 1
     print("\n" + "="*40 + "\nITERATION 1: Baseline\n" + "="*40)
 
     flat_net_v1 = tf.keras.Sequential([
@@ -156,7 +154,7 @@ def main():
         output_scaler, run_epochs=50
     )
 
-    # --- ITERATION 2 ---
+#Iteration 2
     print("\n" + "="*40 + "\nITERATION 2: Advanced\n" + "="*40)
 
     flat_net_v2 = tf.keras.Sequential([
@@ -190,7 +188,7 @@ def main():
         cb_list=[halt_logic]
     )
 
-    # 6. Visualization
+#Visualization
     metrics_list = []
     plt.figure(figsize=(20, 10))
 
@@ -203,14 +201,14 @@ def main():
             "RMSE": round(err_rmse, 4)
         })
 
-        # Loss curves
+#Loss curves
         plt.subplot(2, 4, count)
         plt.plot(hist.history['loss'], label='Train')
         plt.plot(hist.history['val_loss'], label='Valid')
         plt.title(f'{label} Loss')
         plt.legend()
 
-        # Prediction vs Actual
+#Prediction vs Actual
         plt.subplot(2, 4, count + 4)
         plt.scatter(actual, pred, alpha=0.3, s=8)
         plt.plot([actual.min(), actual.max()],
@@ -220,7 +218,7 @@ def main():
     plt.tight_layout()
     plt.show()
 
-    # Summary
+#Summary
     print("\nCOMPARATIVE ANALYSIS:")
     print(pd.DataFrame(metrics_list).to_string(index=False))
 
